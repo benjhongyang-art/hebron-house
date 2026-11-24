@@ -121,11 +121,20 @@ function jsonLd(site) {
   return JSON.stringify(data).replaceAll("<", "\\u003c");
 }
 
+function assetPath(base, path) {
+  const value = String(path || "");
+  if (!value || value.includes("..") || value.includes(":") || value.startsWith("//")) return "";
+  const root = String(base || "/").endsWith("/") ? String(base || "/") : `${base}/`;
+  return root + value.replace(/^\//, "");
+}
+
 function renderNav(site) {
   const links = [
     ["#about", site.about.heading],
     ["#gatherings", site.gatherings.heading],
     ["#events", site.events.heading],
+    ["#gallery", site.gallery.heading],
+    ["#videos", site.videos.heading],
     ["#contact", site.contact.heading],
   ];
   return links
@@ -155,7 +164,7 @@ function renderGatherings(gatherings) {
   return `<ul class="schedule">${rows}</ul>`;
 }
 
-function renderEvents(events) {
+function renderEvents(events, base) {
   if (!events.items?.length) {
     return `<p class="empty-note">${esc(events.empty)}</p>`;
   }
@@ -168,6 +177,10 @@ function renderEvents(events) {
       const link = item.href
         ? `<p class="event-link">${externalAnchor(item.href, item.hrefLabel || "查看連結")}</p>`
         : "";
+      const image = assetPath(base, item.image);
+      const photo = image
+        ? `<img class="event-photo" src="${esc(image)}" alt="${esc(item.imageAlt || item.title)}" width="${Number(item.imageWidth) || 1024}" height="${Number(item.imageHeight) || 1536}" loading="lazy" decoding="async">`
+        : "";
       return `<li class="event-card">
         <div class="event-date">
           <p class="event-day">${time}</p>
@@ -175,6 +188,7 @@ function renderEvents(events) {
           ${kind ? `<p class="event-kind">${esc(kind)}</p>` : ""}
         </div>
         <div class="event-body">
+          ${photo}
           ${item.tag ? `<p class="event-tag">${esc(item.tag)}</p>` : ""}
           <h3>${esc(item.title)}</h3>
           ${item.summary ? `<p class="event-summary">${esc(item.summary)}</p>` : ""}
@@ -188,6 +202,83 @@ function renderEvents(events) {
   return `<ul class="event-list">${cards}</ul>`;
 }
 
+function renderGallery(gallery, base) {
+  if (!gallery?.groups?.length) {
+    return gallery?.empty ? `<p class="empty-note">${esc(gallery.empty)}</p>` : "";
+  }
+
+  const groups = gallery.groups
+    .map((group) => {
+      const photos = (group.photos || [])
+        .map((photo) => {
+          const full = assetPath(base, photo.src);
+          const thumb = assetPath(base, photo.thumb || photo.src);
+          if (!full || !thumb) return "";
+          const external = safeUrl(photo.href);
+          const width = Number(photo.width) || 720;
+          const height = Number(photo.height) || 540;
+          return `<li>
+            <a class="gallery-thumb" href="${esc(full)}"${external ? ` data-external="${external}"` : ""}>
+              <img src="${esc(thumb)}" alt="${esc(photo.alt)}" width="${width}" height="${height}" loading="lazy" decoding="async">
+            </a>
+          </li>`;
+        })
+        .join("");
+      if (!photos) return "";
+      return `<section class="gallery-group">
+        <header class="gallery-heading">
+          <h3>${esc(group.title)}</h3>
+          ${group.dateLabel ? `<p class="quiet">${esc(group.dateLabel)}</p>` : ""}
+        </header>
+        <ul class="gallery-grid">${photos}</ul>
+      </section>`;
+    })
+    .join("");
+
+  return `<div class="gallery" data-close="${esc(gallery.closeLabel)}" data-prev="${esc(gallery.prevLabel)}" data-next="${esc(gallery.nextLabel)}" data-facebook="${esc(gallery.facebookLabel)}" data-count="${esc(gallery.countLabel)}">${groups}</div>
+    <dialog class="lightbox" id="lightbox" aria-label="${esc(gallery.heading)}">
+      <div class="lightbox-bar">
+        <p class="lightbox-count"></p>
+        <button type="button" class="lightbox-close">${esc(gallery.closeLabel)}</button>
+      </div>
+      <div class="lightbox-stage">
+        <button type="button" class="lightbox-prev" aria-label="${esc(gallery.prevLabel)}"></button>
+        <img class="lightbox-image" alt="">
+        <button type="button" class="lightbox-next" aria-label="${esc(gallery.nextLabel)}"></button>
+      </div>
+      <p class="lightbox-caption"></p>
+      <p class="lightbox-external"></p>
+    </dialog>`;
+}
+
+function renderVideos(videos) {
+  const items = videos?.items || [];
+  if (!items.length) return "";
+  const embedded = items.filter((item) => item.embed);
+  const linked = items.filter((item) => !item.embed);
+  const cards = embedded
+    .map((item) => {
+      const href = safeUrl(item.href);
+      const src = href
+        ? `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(href)}&show_text=false&width=560`
+        : "";
+      return `<li class="video-card">
+        <h3>${esc(item.title)}</h3>
+        ${src ? `<div class="video-frame"><iframe src="${esc(src)}" title="${esc(item.title)}" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe></div>` : ""}
+        ${href ? `<p class="video-fallback">${externalAnchor(href, videos.watchLabel || "在 Facebook 觀看")}</p>` : ""}
+      </li>`;
+    })
+    .join("");
+  const more = linked
+    .map((item) => {
+      const href = safeUrl(item.href);
+      return `<li>${href ? externalAnchor(href, item.title) : esc(item.title)}</li>`;
+    })
+    .join("");
+  return `${cards ? `<ul class="video-list">${cards}</ul>` : ""}
+    ${more ? `<h3 class="video-more-title">${esc(videos.moreHeading || "")}</h3><ul class="video-links">${more}</ul>` : ""}`;
+}
+
 function contactRow({ href, external, icon, label, value }) {
   const inner = `<span class="icon-bubble">${icon}</span><span><span class="contact-label">${esc(label)}</span><span class="contact-value">${esc(value)}</span></span>`;
   if (external) {
@@ -198,7 +289,7 @@ function contactRow({ href, external, icon, label, value }) {
   return `<li><a class="contact-row" href="${esc(href)}">${inner}</a></li>`;
 }
 
-export function renderPage(site) {
+export function renderPage(site, base = "/hebron-house/") {
   const year = new Date().getFullYear();
   const tel = toTel(site.phone);
   const mapQuery = encodeURIComponent(site.address);
@@ -297,7 +388,27 @@ export function renderPage(site) {
           <h2 id="events-title">${esc(site.events.heading)}</h2>
           <p class="lede">${esc(site.events.intro)}</p>
         </header>
-        ${renderEvents(site.events)}
+        ${renderEvents(site.events, base)}
+      </div>
+    </section>
+
+    <section id="gallery" class="section" aria-labelledby="gallery-title">
+      <div class="wrap">
+        <header class="section-heading">
+          <h2 id="gallery-title">${esc(site.gallery.heading)}</h2>
+          <p class="lede">${esc(site.gallery.intro)}</p>
+        </header>
+        ${renderGallery(site.gallery, base)}
+      </div>
+    </section>
+
+    <section id="videos" class="section band" aria-labelledby="videos-title">
+      <div class="wrap">
+        <header class="section-heading">
+          <h2 id="videos-title">${esc(site.videos.heading)}</h2>
+          <p class="lede">${esc(site.videos.intro)}</p>
+        </header>
+        ${renderVideos(site.videos)}
       </div>
     </section>
 
@@ -355,9 +466,9 @@ export function renderPage(site) {
   <script type="application/ld+json">${jsonLd(site)}</script>`;
 }
 
-export function applyDocument(html, site) {
+export function applyDocument(html, site, base = "/hebron-house/") {
   return html
     .replaceAll("__TITLE__", esc(site.meta.title))
     .replaceAll("__DESCRIPTION__", esc(site.meta.description))
-    .replace("<!--app-->", renderPage(site));
+    .replace("<!--app-->", renderPage(site, base));
 }

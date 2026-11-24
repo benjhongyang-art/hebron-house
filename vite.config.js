@@ -12,7 +12,7 @@ export default defineConfig({
     {
       name: "hebron-html",
       transformIndexHtml(html) {
-        return applyDocument(html, site);
+        return applyDocument(html, site, base);
       },
     },
   ],
