@@ -4,6 +4,25 @@
 
 文字全部是繁體中文。還沒有公開的資料（例如聚會時間、教會簡介）會標成「（待補）」，確定內容後再改掉即可。
 
+## 線上網站
+
+正式網址：
+
+[https://benjhongyang-art.github.io/hebron-house/](https://benjhongyang-art.github.io/hebron-house/)
+
+程式放在 [github.com/benjhongyang-art/hebron-house](https://github.com/benjhongyang-art/hebron-house)。
+
+### 改完怎麼更新線上網站
+
+1. 改 `src/content.js`（或其他檔案）並存檔。
+2. 把修改提交後，推送到 GitHub 的 `main` 分支。
+3. GitHub Actions 會自動執行 `npm run build`，再把 `dist` 發佈到 GitHub Pages。
+4. 約一兩分鐘後，重新整理上面的網址即可看到新內容。部署進度在專案的 Actions 分頁。
+
+若網址一直顯示找不到頁面，請到 GitHub 專案的 **Settings → Pages → Build and deployment**，把 **Source** 選成 **GitHub Actions**，存檔後再等一次部署完成。
+
+這個網站是 GitHub Pages 的專案網站，網址路徑是 `/hebron-house/`。建置時已用這個路徑，圖片與樣式才載入得了。
+
 ## 平常只要改一個檔案
 
 網站上的文字都在：
@@ -42,7 +61,7 @@ npm run dev
 
 接著用瀏覽器打開：
 
-[http://127.0.0.1:4721](http://127.0.0.1:4721)
+[http://127.0.0.1:4721/hebron-house/](http://127.0.0.1:4721/hebron-house/)
 
 改完 `src/content.js` 並存檔後，重新整理瀏覽器。若畫面沒有更新，在終端機按 `Ctrl + C` 停掉，再輸入一次 `npm run dev`。
 
@@ -111,21 +130,27 @@ items: []
 
 ## 做成可以上傳的網頁
 
-在專案資料夾執行：
+推送到 GitHub 的 `main` 就會自動部署，平常不必自己上傳。
+
+若要在自己的電腦先做出靜態檔：
 
 ```bash
 npm run build
 ```
 
-完成後會產生 `dist` 資料夾。把 `dist` 裡面的檔案上傳到網站空間（放到網站根目錄）即可。不需要資料庫，也不需要再執行程式。
-
-本機想先看建置結果：
+完成後會產生 `dist` 資料夾。本機預覽建置結果：
 
 ```bash
 npm run preview
 ```
 
-然後打開 [http://127.0.0.1:4721](http://127.0.0.1:4721)。
+然後打開 [http://127.0.0.1:4721/hebron-house/](http://127.0.0.1:4721/hebron-house/)。
+
+若要把網站放到別的網址、而且不是 `/hebron-house/` 這個路徑，建置前先設定 `VITE_BASE`。放到網域根目錄時用：
+
+```bash
+VITE_BASE=/ npm run build
+```
 
 ## 其他說明
 
