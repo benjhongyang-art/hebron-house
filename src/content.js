@@ -115,7 +115,7 @@ export const site = {
     groups: [
       {
         title: "2026年2月27日",
-        dateLabel: "2026年2月27日",
+        dateLabel: "",
         photos: [
           {
             src: "gallery/2026-02-27-outing.webp",
